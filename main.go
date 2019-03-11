@@ -5,11 +5,10 @@ import (
 )
 
 const (
-	screenWidth  = 1200
-	screenHeight = 650
+	screenWidth  = 1366
+	screenHeight = 688
 )
 
-var bgColor = []uint8{230, 230, 230, 230}
 var window *sdl.Window
 var renderer *sdl.Renderer
 var err error
@@ -38,24 +37,49 @@ func main() {
 	}
 	defer renderer.Destroy()
 
-	ship, err := newShip(renderer)
-	if err != nil {
-		println("load newShip:", err)
-		return
+	ship := newShip(renderer)
+
+	var alienPool []alien
+	// Вычисляем количество пришельцев
+	numAlienX := (screenWidth - alienWidth*2.0) / (alienWidth * 2.0)
+	numAlienY := (screenHeight - alienWidth*3) / (alienWidth * 2)
+
+	for i := 0; i < int(numAlienX); i++ {
+		for j := 0; j < numAlienY; j++ {
+			x := float64(i)/numAlienX*screenWidth + alienWidth*1.5
+			y := float64(j)*alienHeight*3.0/2 + alienHeight*1.5
+
+			alien := newAlien(renderer, x, y)
+			alienPool = append(alienPool, alien)
+		}
 	}
+
+	initBulletPool(renderer)
 
 	for {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch event.(type) {
 			case *sdl.QuitEvent:
-				println("Quit.")
 				return
 			}
 		}
 		renderer.SetDrawColor(230, 230, 230, 230)
 		renderer.Clear()
 
+		// Помещаем объекты в окно
 		ship.draw(renderer)
+
+		for _, alien := range alienPool {
+			alien.draw(renderer)
+		}
+
+		for _, b := range bulletPool {
+			b.draw(renderer)
+			b.update()
+		}
+
+		// Обновляем положение объектов
+		ship.update()
 
 		renderer.Present()
 	}
